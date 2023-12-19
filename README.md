@@ -20,7 +20,7 @@
 ## ✒️ Sensor 및 Actuator
 - **공격 RPI** : 압력센서, 고감도 사운드 감지 센서, 가속도 센서, 초음파 센서, RGB LED 4개
 - **수비 RPI** : 조이스틱, LED 3개, 서보모터
-- **서버 RPI** : 7-세그먼트(3자리) , 스피커(부저)
+- **서버 RPI** : 7-세그먼트(3자리) , 스피커(부저), 버튼
 - **도트매트릭스 RPI** : 8x8 도트매트릭스 3개
 
 ## 📝 프로젝트 아키텍쳐
@@ -35,7 +35,7 @@
 ![Alt text](picture/attack.png)
 
 ### 수비 RPI
-![Alt text](picture/defense.png)
+![Alt text](picture/defence.png)
 
 ### 도트매트릭스 RPI
 
