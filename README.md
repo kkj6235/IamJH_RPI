@@ -46,3 +46,16 @@
 ![](picture/closeDemo.gif)
 
 ![Alt text](picture/Demo.gif)
+
+## 컴파일 및 실행
+
+- **서버 RPI** : `gcc -o server Server.c gpio.c pwm.c -lpthread`
+- **수비 RPI** : `gcc -o defence Defence.c -lpthread`
+- **공격 RPI** : `gcc -o attack client.c gpio.c spi.c -lpthread`
+- **도트매트릭스 RPI** : `gcc -o dotmatrix matrix.c gpio.c lst.c -lpthread`
+
+- **반드시 실행 순서를 지켜야합니다!!**
+1. `./server <port>`
+2. `./dotmatrix <IP> <port>`
+3. `./attack <IP> <port>`
+4. `./defence <IP> <port>`
