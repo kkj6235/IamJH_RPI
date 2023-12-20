@@ -486,8 +486,6 @@ int main(int argc, char *argv[]) {
   printf("Connection established\n");
 /*-----------------------------------------------------------------------*/
 //game start
-/*Initialization--------------------------------------------------------------------------------------*/
-  setting();
 while(1){
     while(1)
     {
@@ -503,6 +501,8 @@ while(1){
           break;
       }
     }
+    /*Initialization--------------------------------------------------------------------------------------*/
+    setting();
     if (GPIOWrite(LED_1, 1) == -1 || GPIOWrite(LED_2, 1) == -1 \
     || GPIOWrite(LED_3,1) == -1) {
         printf("GPIOExport Write\n");
