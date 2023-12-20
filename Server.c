@@ -36,7 +36,7 @@ DATA DATA_set;
 int clnt_sock_DOT = -1 ;
 int clnt_sock_ATTACK = -1;
 int clnt_sock_DEFENSE = -1;
-pthread_t p_thread[5];
+pthread_t p_thread[7];
 int segments[8] =  {11,6,23,8,7,10,16,25};    
 int digits[4] = {22,27,17,24};
 int num[][7] = {
@@ -65,9 +65,8 @@ void error_handling(char *message) {
 //--------------------------------------------------------------------
 
 
-void *DOT_function(void *data) {
+void *DOT_function() {
     
-    int clnt_sock_DOT = *(int *)data;
     //----------------------------------------------------------------
     // 받아올 msg 초기화
     //----------------------------------------------------------------
@@ -81,21 +80,20 @@ void *DOT_function(void *data) {
         //------------------------------------------------------------
         // 전송할 데이터 포맷으로 변환 (다섯자리 수)
         //------------------------------------------------------------
-        char msg_data[5];
-        memset(msg_data, 0, sizeof(msg_data)); 
-        strcpy(msg_data, DATA_set.direction); 
-        strcat(msg_data, DATA_set.grade);   
-        if (msg_data[4] == 0) msg_data[4] = '0';
+        
         if(read(clnt_sock_DOT, &msg, sizeof(char)) == -1) printf("Dot read error");
         DATA_set.attack = msg - '0'; 
 
-		write(clnt_sock_DOT, msg_data, sizeof(msg_data)); 
-        memset(DATA_set.grade, '0', sizeof(DATA_set.grade));
-        memset(DATA_set.direction, '0', sizeof(DATA_set.direction));
-        usleep(100*1000);
         if (DATA_set.attack == 1){
             printf("[수비 플레이어 적중] 수비 체력 -1\n");
+            char Data_attack;
+            Data_attack = DATA_set.attack + '0';
+            //snprintf(&Data_attack,1,"%d",DATA_set.attack);
+            
+            write(clnt_sock_DEFENSE, &Data_attack, sizeof(char));
+            DATA_set.attack = 0;
         } 
+        usleep(100*1000);
 	} 
     //----------------------------------------------------------------
     // 수비 캐릭터 사망 시 
@@ -104,8 +102,28 @@ void *DOT_function(void *data) {
     printf("dot 종료\n");
     //----------------------------------------------------------------
 }
-void *ATTACK_function(void *data) {
-    int clnt_sock_ATTACK = *(int *)data;
+void *DOT_write_function(void *data) {
+    
+    //----------------------------------------------------------------
+    // 시간이 종료되지 않았고, 수비 플레이어가 살아있는 경우에 무한 루프
+    //----------------------------------------------------------------
+	while (DATA_set.time == 1 && DATA_set.life == 1) {
+        //------------------------------------------------------------
+        // 전송할 데이터 포맷으로 변환 (다섯자리 수)
+        //------------------------------------------------------------
+        char msg_data[5];
+        memset(msg_data, 0, sizeof(msg_data)); 
+        strcpy(msg_data, DATA_set.direction); 
+        strcat(msg_data, DATA_set.grade);   
+        if (msg_data[4] == 0) msg_data[4] = '0';
+
+		write(clnt_sock_DOT, msg_data, sizeof(msg_data)); 
+        memset(DATA_set.grade, '0', sizeof(DATA_set.grade));
+        memset(DATA_set.direction, '0', sizeof(DATA_set.direction));
+        usleep(100*1000);
+	} 
+}
+void *ATTACK_function() {
     //----------------------------------------------------------------
     // 받아올 msg 초기화
     //----------------------------------------------------------------
@@ -131,22 +149,20 @@ void *ATTACK_function(void *data) {
     printf("attack 종료\n");
     //----------------------------------------------------------------
 }
-void *DEFENSE_function(void *data) {
-    int clnt_sock_DEFENSE = *(int *)data;
+void *DEFENSE_function() {
     //----------------------------------------------------------------
     // 받아올 msg 초기화
     //----------------------------------------------------------------
 	char msg[5];
-	memset(msg, 0, sizeof(msg));
     //----------------------------------------------------------------
     // 전송할 데이터 포맷으로 변환 (네자리 수)
     //----------------------------------------------------------------
-    int input_data = 0;
     char send_data[] = "9999";
     //----------------------------------------------------------------
     // 시간이 종료되지 않았고, 수비 플레이어가 살아있는 경우에 무한 루프
     //----------------------------------------------------------------
 	while (DATA_set.time == 1 && DATA_set.life == 1) {
+        memset(msg, 0, sizeof(msg));
         if (read(clnt_sock_DEFENSE, msg, sizeof(msg)) == -1) printf("Defence read error");
         int input_data = atoi(msg);
         if(input_data == -1)    DATA_set.life = 0;
@@ -156,13 +172,6 @@ void *DEFENSE_function(void *data) {
             else
                 DATA_set.direction[0] = '0';
             //strcpy(DATA_set.direction,msg);
-        }
-        char Data_attack;
-        Data_attack = DATA_set.attack + '0';
-        //snprintf(&Data_attack,1,"%d",DATA_set.attack);
-        write(clnt_sock_DEFENSE, &Data_attack, sizeof(char));
-        if (DATA_set.attack == 1){
-            DATA_set.attack = 0;
         }
 	}
     //----------------------------------------------------------------
@@ -384,36 +393,42 @@ int main(int argc, char *argv[]) {
                 PWMWriteDutyCycle(0, 0);
                 printf("[GAME START]\n");
                 
-                thr_id = pthread_create(&p_thread[0], NULL, DOT_function, &clnt_sock_DOT);    // dot_thread 생성
+                thr_id = pthread_create(&p_thread[0], NULL, DOT_function, NULL);    // dot_thread 생성
                 if (thr_id < 0) {
                     perror("thread create error : ");  
                     exit(0);
                 }
-                thr_id = pthread_create(&p_thread[1], NULL, ATTACK_function, &clnt_sock_ATTACK);    // ATTACK_thread 생성
+                thr_id = pthread_create(&p_thread[1], NULL, ATTACK_function, NULL);    // ATTACK_thread 생성
                 if (thr_id < 0) {
                     perror("thread create error : ");
                     exit(0);
                 }
-                thr_id = pthread_create(&p_thread[2], NULL, DEFENSE_function, &clnt_sock_DEFENSE);    // defense_thread 생성
+                thr_id = pthread_create(&p_thread[2], NULL, DEFENSE_function, NULL);    // defense_thread 생성
                 if (thr_id < 0) {
                     perror("thread create error : ");
                     exit(0);
                 }
-                thr_id = pthread_create(&p_thread[3], NULL, Time_function, NULL);    // defense_thread 생성
+                thr_id = pthread_create(&p_thread[3], NULL, Time_function, NULL);    // 세븐 세그먼트 생성
                 if (thr_id < 0) {
                     perror("thread create error : ");
                     exit(0);
                 }
-                thr_id = pthread_create(&p_thread[4], NULL, CountDown, NULL);    // defense_thread 생성
+                thr_id = pthread_create(&p_thread[4], NULL, CountDown, NULL);    // 카운트다운 생성
+                if (thr_id < 0) {
+                    perror("thread create error : ");
+                    exit(0);
+                }
+                thr_id = pthread_create(&p_thread[5], NULL, DOT_write_function, NULL);    // defense_thread 생성
                 if (thr_id < 0) {
                     perror("thread create error : ");
                     exit(0);
                 }
                 pthread_detach(p_thread[3]);
                 pthread_detach(p_thread[4]);
-                pthread_join(p_thread[0], NULL);
-                pthread_join(p_thread[1], NULL);
-                pthread_join(p_thread[2], NULL);
+                pthread_detach(p_thread[0]);
+                pthread_detach(p_thread[1]);
+                pthread_detach(p_thread[2]);
+                pthread_detach(p_thread[5]);
             }
             else 
             {
@@ -437,6 +452,7 @@ int main(int argc, char *argv[]) {
                 pthread_cancel(p_thread[2]);
                 pthread_cancel(p_thread[3]);
                 pthread_cancel(p_thread[4]);
+                pthread_cancel(p_thread[5]);
                 write(clnt_sock_DOT, send_data, sizeof(send_data));
                 write(clnt_sock_ATTACK, send_data, sizeof(send_data));
                 write(clnt_sock_DEFENSE, send_data, sizeof(send_data));
